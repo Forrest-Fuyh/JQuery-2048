@@ -13,3 +13,12 @@ function showNumberWithAnimation(i,j,n){
         left:getPosLeft(j)
     },500)
 }
+
+//移动单元格动画
+function showMoveAnimation(fx,fy,tox,toy){
+    let numberCell = $('#number-cell-'+fx+'-'+fy);
+    numberCell.animate({
+        top:getPosTop(tox),
+        left:getPosLeft(toy)
+    },200)
+}

@@ -1,5 +1,7 @@
 //位置数组
 let nums = new Array();
+let score = 0;
+let hasConflicted = new Array();    //标记单元格是否做过叠加，true表示叠加过，false表示未叠加
 
 $(document).ready(function(){
     Newgame();
@@ -29,14 +31,18 @@ function init(){
     //初始化数组
     for (let i = 0; i < 4; i++){
         nums[i] = new Array();
+        hasConflicted[i] = new Array();
         for(let j = 0; j < 4; j++){
             nums[i][j] = 0;
+            hasConflicted[i][j] = false;    //表示未叠加
         }
     }
 
     //动态创建上层单元格
     updateView();
-
+    //分数归零
+    score = 0;
+    updateScore(score);
 };
 
 //更新上层单元格视图
@@ -64,6 +70,7 @@ function updateView(){
                 numberCell.css('color',getNumberColor(nums[i][j]));
                 numberCell.text(nums[i][j]);
             }
+        hasConflicted[i][j] = false;
         }
     }
 }
@@ -99,4 +106,173 @@ function generateOneNumber(){
     //在随机位置上显示随机数字
     nums[randX][randY] = randNum;
     showNumberWithAnimation(randX,randY,randNum);
+}
+
+//实现键盘响应
+$(document).keydown(function (event){
+    //阻止事件的默认动作
+    event.preventDefault();
+
+    switch (event.keyCode) {
+        case 37: //left
+            //判断是否可以向左移动
+            if(canMoveLeft(nums)){
+                moveLeft();
+                setTimeout(generateOneNumber,500);
+                setTimeout(isGameOver,500);
+            }
+            break;
+        case 38://up
+            if(canMoveUp(nums)){
+                moveUp();
+                setTimeout(generateOneNumber,500);
+                setTimeout(isGameOver,500);
+            }
+            break;
+        case 39://right
+            if(canMoveRight(nums)){
+                moveRight();
+                setTimeout(generateOneNumber,500);
+                setTimeout(isGameOver,500);
+            }
+            break;
+        case 40://down
+            if(canMoveDown(nums)){
+                moveDown();
+                setTimeout(generateOneNumber,500);
+                setTimeout(isGameOver,500);
+            }
+            break;
+        default:break;
+
+    }
+
+})
+
+
+/*
+    向左移动
+    需要对每个数字进行判断选择合适的落脚点，落脚点有两种情况:
+        1、落脚点没有数字，并且移动的路径中没有障碍物
+        2、落脚点数字和自己相同，并且移动的路径中没有障碍物
+*/
+function moveLeft(){
+    for (let i = 0;i<4;i++){
+        for (let j=1;j<4;j++){
+            if(nums[i][j] != 0 ){
+                for (let k=0;k<j;k++){
+                    if(nums[i][k]==0 && noBlockHorizontal(i,k,j,nums)){     //判断第i行的第k-j之间是否有障碍物
+                        //移动单元格
+                        showMoveAnimation(i,j,i,k);
+                        nums[i][k] = nums[i][j];
+                        nums[i][j] = 0;
+                        break;
+                    }else if(nums[i][k] == nums[i][j] && noBlockHorizontal(i,k,j,nums) && !hasConflicted[i][k]){    //判断落脚点数字是否和自己相同且移动路径无障碍
+                        //移动单元格
+                        showMoveAnimation(i,j,i,k);
+                        nums[i][k] += nums[i][j];
+                        nums[i][j] = 0;
+                        //统计分数
+                        score += nums[i][k];
+                        //更新分数
+                        updateScore(score);
+
+                        //更新叠加判断
+                        hasConflicted[i][k] = true; //表示已经叠加
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    setTimeout(updateView,200);
+}
+
+//向右移动
+function moveRight(){
+    for (let i = 0;i<4;i++){
+        for (let j=2;j>=0;j--){
+            if(nums[i][j] != 0 ){
+                for (let k=3;k>j;k--){
+                    if(nums[i][k]==0 && noBlockHorizontal(i,j,k,nums)){     //判断第i行的第k-j之间是否有障碍物
+                        //移动单元格
+                        showMoveAnimation(i,j,i,k);
+                        nums[i][k] = nums[i][j];
+                        nums[i][j] = 0;
+                        break;
+                    }else if(nums[i][k] == nums[i][j] && noBlockHorizontal(i,j,k,nums) && !hasConflicted[i][k]){    //判断落脚点数字是否和自己相同且移动路径无障碍
+                        //移动单元格
+                        showMoveAnimation(i,j,i,k);
+                        nums[i][k] += nums[i][j];
+                        nums[i][j] = 0;
+                        //统计分数
+                        score += nums[i][k];
+                        //更新分数
+                        updateScore(score);
+
+                        //更新叠加判断
+                        hasConflicted[i][k] = true; //表示已经叠加
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    setTimeout(updateView,200);
+}
+
+//向上移动
+function moveUp(){
+    for(var j=0;j<4;j++){
+        for(var i=1;i<4;i++){
+            if(nums[i][j]!=0){
+                for(var k=0;k<i;k++){
+                    if(nums[k][j]==0 && noBlockVertical(j,k,i,nums)){ //第j列的第k-i行之间是否有障碍物
+                        showMoveAnimation(i,j,k,j);
+                        nums[k][j]=nums[i][j];
+                        nums[i][j]=0;
+                        break;
+                    }else if(nums[k][j]==nums[i][j] && noBlockVertical(j,k,i,nums) && !hasConflicted[k][j]){
+                        showMoveAnimation(i,j,k,j);
+                        nums[k][j]+=nums[i][j];
+                        nums[i][j]=0;
+                        score+=nums[k][j];
+                        updateScore(score);
+
+                        hasConflicted[k][j]=true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    setTimeout(updateView,200);
+}
+
+//向下移动
+function moveDown(){
+    for(var j=0;j<4;j++){
+        for(var i=2;i>=0;i--){
+            if(nums[i][j]!=0){
+                for(var k=3;k>i;k--){
+                    if(nums[k][j]==0 && noBlockVertical(j,i,k,nums)){ //第j列的第i-k行之间是否有障碍物
+                        showMoveAnimation(i,j,k,j);
+                        nums[k][j]=nums[i][j];
+                        nums[i][j]=0;
+                        break;
+                    }else if(nums[k][j]==nums[i][j]  && noBlockVertical(j,i,k,nums) && !hasConflicted[k][j]){
+                        showMoveAnimation(i,j,k,j);
+                        nums[k][j]+=nums[i][j];
+                        nums[i][j]=0;
+                        score+=nums[k][j];
+                        updateScore(score);
+
+                        hasConflicted[k][j]=true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    setTimeout(updateView,200);
 }
